@@ -2,12 +2,14 @@
 
 namespace Tests\Unit\User;
 
+use App\Actions\Gender\GenderCheckExistsAction;
 use App\Actions\User\UserEmailUniqueVerifyAction;
 use App\Actions\User\UserRegisterAction;
 use App\Models\User;
 use App\Repositories\User\UserInterfaceRepository;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -15,12 +17,14 @@ class UserRegisterActionTest extends TestCase
 {
     private $repositoryMock;
     private $emailVerifyActionMock;
+    private $genderCheckExistsActionMock;
 
     public function setUp(): void
     {
         parent::setUp();
         $this->repositoryMock = $this->createMock(UserInterfaceRepository::class);
         $this->emailVerifyActionMock = $this->createMock(UserEmailUniqueVerifyAction::class);
+        $this->genderCheckExistsActionMock = $this->createMock(GenderCheckExistsAction::class);
     }
 
     public function test_expected_conflict_http_exception_when_email_verify_throw_exception(): void
@@ -31,7 +35,8 @@ class UserRegisterActionTest extends TestCase
         $userData = [
             'email' => 'test@example.com',
             'password' => 'password123',
-            'name' => 'John Doe'
+            'name' => 'John Doe',
+            'gender_id' => 1
         ];
 
         $this->emailVerifyActionMock->expects($this->once())
@@ -39,7 +44,41 @@ class UserRegisterActionTest extends TestCase
             ->with($userData['email'])
             ->willThrowException(new ConflictHttpException('Email is already being used'));
 
-        $action = new UserRegisterAction($this->repositoryMock, $this->emailVerifyActionMock);
+        $action = new UserRegisterAction(
+            $this->repositoryMock,
+            $this->emailVerifyActionMock,
+            $this->genderCheckExistsActionMock
+        );
+
+        $action->execute($userData);
+    }
+
+    public function test_expected_conflict_http_exception_gender_not_found(): void
+    {
+        $this->expectException(NotFoundHttpException::class);
+        $this->expectExceptionMessage('Gender is not found');
+
+        $userData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'name' => 'John Doe',
+            'gender_id' => 1
+        ];
+
+        $this->emailVerifyActionMock->expects($this->once())
+            ->method('execute')
+            ->with($userData['email']);
+
+        $this->genderCheckExistsActionMock->expects($this->once())
+            ->method('execute')
+            ->with($userData['gender_id'])
+            ->willThrowException(new NotFoundHttpException('Gender is not found'));
+
+        $action = new UserRegisterAction(
+            $this->repositoryMock,
+            $this->emailVerifyActionMock,
+            $this->genderCheckExistsActionMock
+        );
 
         $action->execute($userData);
     }
@@ -50,7 +89,8 @@ class UserRegisterActionTest extends TestCase
         $userData = [
             'email' => 'test@example.com',
             'password' => $passwordHashed,
-            'name' => 'John Doe'
+            'name' => 'John Doe',
+            'gender_id' => 1
         ];
 
         Hash::shouldReceive('isHashed')
@@ -78,8 +118,11 @@ class UserRegisterActionTest extends TestCase
             ->with($user)
             ->andReturn('jwt_token');
 
-        $action = new UserRegisterAction($this->repositoryMock, $this->emailVerifyActionMock);
-
+            $action = new UserRegisterAction(
+                $this->repositoryMock,
+                $this->emailVerifyActionMock,
+                $this->genderCheckExistsActionMock
+            );
         $jwtToken = $action->execute($userData);
 
         $this->assertSame('jwt_token', $jwtToken);
