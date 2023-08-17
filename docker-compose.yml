@@ -9,7 +9,7 @@ services:
         volumes:
             - '.:/var/www'
         networks:
-            - todolist
+            - car-management
         depends_on:
             - mysql
     nginx:
@@ -23,7 +23,7 @@ services:
         restart: always
         tty: true
         networks:
-            - todolist
+            - car-management
         ports:
             - "80:80"
         depends_on:
@@ -34,13 +34,13 @@ services:
         restart: always
         environment:
             MYSQL_ROOT_PASSWORD: 'mysql'
-            MYSQL_DATABASE: 'todolist'
+            MYSQL_DATABASE: 'car-management'
             MYSQL_USER: 'mysql'
             MYSQL_PASSWORD: 'mysql'
         networks:
-            - todolist
+            - car-management
         ports:
             - "3306:3306"
 networks:
-    todolist:
+    car-management:
         driver: bridge
