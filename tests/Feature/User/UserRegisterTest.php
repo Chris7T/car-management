@@ -3,6 +3,7 @@
 namespace Tests\Feature\User;
 
 use App\Actions\User\UserRegisterAction;
+use App\Enum\GenderEnum;
 use App\Models\User;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -91,6 +92,19 @@ class UserRegisterTest extends TestCase
             ]);
     }
 
+    public function test_expected_unprocessable_entity_exception_when_gender_is_null()
+    {
+        $response = $this->postJson(route(self::ROUTE));
+
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->assertJsonValidationErrors(['gender_id'])
+            ->assertJson([
+                'errors' => [
+                    'gender_id' => ['The gender id field is required.'],
+                ],
+            ]);
+    }
+
     public function test_expected_unprocessable_entity_exception_when_email_is_used_twice()
     {
         $email = User::factory()->create()->email;
@@ -101,8 +115,8 @@ class UserRegisterTest extends TestCase
             'name' => $name,
             'password' =>  $password,
             'password_confirmation' =>  $password,
+            'gender_id' => GenderEnum::Female->value
         ];
-
         $response = $this->postJson(route(self::ROUTE, $request));
 
         $response->assertStatus(Response::HTTP_CONFLICT)
@@ -121,6 +135,7 @@ class UserRegisterTest extends TestCase
             'name' => $name,
             'password' =>  $password,
             'password_confirmation' =>  $password,
+            'gender_id' => GenderEnum::Female->value
         ];
 
         $userRegisterActionMock = Mockery::mock(UserRegisterAction::class);
@@ -145,8 +160,9 @@ class UserRegisterTest extends TestCase
         $request = [
             'email' => $email,
             'name' => $name,
-            'password' =>  $password,
-            'password_confirmation' =>  $password,
+            'password' => $password,
+            'password_confirmation' => $password,
+            'gender_id' => GenderEnum::Female->value
         ];
 
         $response = $this->postJson(route(self::ROUTE, $request));
@@ -180,8 +196,9 @@ class UserRegisterTest extends TestCase
         $request = [
             'email' => $email,
             'name' => $name,
-            'password' =>  $password,
-            'password_confirmation' =>  $password,
+            'password' => $password,
+            'password_confirmation' => $password,
+            'gender_id' => GenderEnum::Female->value
         ];
 
         $response = $this->postJson(route(self::ROUTE, $request));
